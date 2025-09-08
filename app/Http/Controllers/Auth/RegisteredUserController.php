@@ -33,14 +33,25 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => ['required', 'in:student,teacher,admin'],
+            'security_code' => ['nullable', 'string'],
+
         ]);
+
+        // Kiểm tra mã bảo mật nếu chọn vai trò nhạy cảm
+        if (in_array($request->role, ['teacher', 'admin'])) {
+            if ($request->security_code !== 'KANI2025') {
+                return back()->withErrors(['security_code' => 'Mã bảo mật không đúng']);
+            }
+        }
+
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
-
+        $user->assignRole($request->role);
         event(new Registered($user));
 
         Auth::login($user);
